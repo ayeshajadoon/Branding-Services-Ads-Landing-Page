@@ -655,7 +655,7 @@ header .container {
 
 /* Footer Section */
 footer {
-    background: linear-gradient(to top, #ffe033, #fbf8ef);
+    background: linear-gradient(to top,#fbf8ef, #ffe033 );
     padding: 60px 0;
     text-align: center;
     font-size: 16px;
