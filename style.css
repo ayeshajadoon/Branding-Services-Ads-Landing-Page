@@ -669,11 +669,11 @@ footer .container {
     flex-wrap: wrap;
 }
 
-.footer-contact p {
+.footer-contact h2 {
     font-family: 'Barlow', sans-serif;
-    font-size: 26px;
-    font-weight: 700;
-    color: #000;
+    font-size: 70px;
+    font-weight: 900;
+    color: #101010;
     margin: 5px 0;
     text-transform: uppercase;
 }
