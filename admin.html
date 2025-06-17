@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Form Submissions</title>
+    <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Barlow', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        h1 {
+            color: #101010;
+            margin: 0;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f8f8f8;
+            font-weight: 600;
+        }
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+        .no-submissions {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        .btn {
+            padding: 10px 20px;
+            border-radius: 100px;
+            cursor: pointer;
+            font-family: 'Barlow', sans-serif;
+            font-size: 16px;
+            border: 1px solid #101010;
+        }
+        .btn-primary {
+            background: #FEE83F;
+        }
+        .btn-primary:hover {
+            background: #f5df3a;
+        }
+        .btn-secondary {
+            background: transparent;
+        }
+        .btn-secondary:hover {
+            background: #f5f5f5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Form Submissions Dashboard</h1>
+            <div class="button-group">
+                <button class="btn btn-primary" onclick="fetchSubmissions()">Refresh</button>
+                <button class="btn btn-secondary" onclick="handleLogout()">Logout</button>
+            </div>
+        </div>
+        <div id="submissions-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Company</th>
+                        <th>Goals</th>
+                    </tr>
+                </thead>
+                <tbody id="submissions-body">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Check authentication on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuth();
+            fetchSubmissions();
+        });
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleString();
+        }
+
+        function handleLogout() {
+            // First check if we're actually authenticated
+            fetch('/check-auth', {
+                method: 'GET',
+                credentials: 'same-origin'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.authenticated) {
+                    // If not authenticated, just redirect to login
+                    window.location.replace('/login');
+                    return;
+                }
+                
+                // If authenticated, proceed with logout
+                return fetch('/logout', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'same-origin'
+                });
+            })
+            .then(response => {
+                if (!response) return; // Skip if we redirected earlier
+                if (!response.ok) {
+                    throw new Error('Logout failed');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (!data) return; // Skip if we redirected earlier
+                if (data.success) {
+                    // Force a hard redirect to login page
+                    window.location.replace('/login');
+                } else {
+                    throw new Error(data.error || 'Logout failed');
+                }
+            })
+            .catch(error => {
+                console.error('Logout error:', error);
+                // If there's an error, try a hard redirect anyway
+                window.location.replace('/login');
+            });
+        }
+
+        // Add periodic auth check
+        function checkAuth() {
+            fetch('/check-auth', {
+                method: 'GET',
+                credentials: 'same-origin'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.authenticated) {
+                    window.location.replace('/login');
+                }
+            })
+            .catch(() => {
+                window.location.replace('/login');
+            });
+        }
+
+        // Check auth every minute
+        setInterval(checkAuth, 60000);
+
+        function fetchSubmissions() {
+            fetch('/api/submissions')
+                .then(response => {
+                    if (response.status === 401) {
+                        window.location.href = '/login';
+                        return;
+                    }
+                    return response.json();
+                })
+                .then(submissions => {
+                    if (!submissions) return;
+                    
+                    const tbody = document.getElementById('submissions-body');
+                    tbody.innerHTML = '';
+                    
+                    if (submissions.length === 0) {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = '<td colspan="6" class="no-submissions">No submissions yet</td>';
+                        tbody.appendChild(tr);
+                        return;
+                    }
+
+                    submissions.forEach(submission => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>${formatDate(submission.submission_date)}</td>
+                            <td>${submission.first_name} ${submission.last_name}</td>
+                            <td>${submission.email}</td>
+                            <td>${submission.phone}</td>
+                            <td>${submission.company}</td>
+                            <td>${submission.goals}</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching submissions:', error);
+                    const tbody = document.getElementById('submissions-body');
+                    tbody.innerHTML = '<tr><td colspan="6" class="no-submissions">Error loading submissions</td></tr>';
+                });
+        }
+    </script>
+</body>
+</html> 
