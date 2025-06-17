@@ -1408,8 +1408,8 @@
 
 
         .why-brand-guides-matter .image-right video {
-            /* width: 300px !important;
-            max-width: 90vw !important; */
+            width: 300px !important;
+            max-width: 90vw !important;
             height: auto;
         }
 
